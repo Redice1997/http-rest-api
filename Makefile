@@ -2,6 +2,8 @@
 # Usage:
 #   make setup      # Install dependencies
 #   make init       # Initialize the project
+
+all: build run
 		
 setup: ## Install all the build and lint dependencies
 	go get -u github.com/alecthomas/gometalinter
@@ -17,7 +19,7 @@ build:
 	@echo "Building the API server..."
 	@go build -o bin/api ./cmd/api
 
-run: build
+run:
 	@echo "Starting the API server..."
 	@./bin/api
 
@@ -27,5 +29,3 @@ migrate:
 
 
 .PHONY: all setup init lint build migrate test run
-
-.DEFAULT_GOAL := run

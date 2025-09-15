@@ -1,9 +1,15 @@
 package api
 
+// Config holds the configuration settings for the API server.
 type Config struct {
-	Port int
+	ServerAddress      string `yaml:"server_address"`
+	LogLevel           string `yaml:"log_level"`
+	DbConnectionString string `yaml:"db_connection_string"`
 }
 
-func NewConfig() Config {
-	return Config{Port: 8080}
+// DefaultConfig provides default configuration values for the API server.
+func NewConfig() *Config {
+	return &Config{
+		ServerAddress: ":8080",
+	}
 }
