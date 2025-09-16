@@ -27,5 +27,8 @@ migrate:
 	@echo "Running database migrations..."
 	# Add your migration commands here
 
+test:
+	@echo "Running tests..."
+	@go test -v -cover -race -timeout 30s ./...
 
 .PHONY: all setup init lint build migrate test run
