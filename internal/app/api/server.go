@@ -39,10 +39,6 @@ func (s *server) configureRouter() {
 
 func (s *server) handleHello() http.HandlerFunc {
 
-	type request struct {
-		// Add request fields if necessary
-	}
-
 	type response struct {
 		Message string `json:"message"`
 	}
