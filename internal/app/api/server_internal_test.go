@@ -11,7 +11,7 @@ import (
 
 func TestAPIServer_HandleHello(t *testing.T) {
 	s := newServer(
-		newLogger("debug"),
+		NewConfig(),
 		storage.New(),
 	)
 
