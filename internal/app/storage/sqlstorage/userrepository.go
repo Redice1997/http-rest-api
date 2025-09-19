@@ -7,12 +7,18 @@ import (
 )
 
 type UserRepository struct {
-	storage *Storage
+	s *Storage
 }
 
-func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
+func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 
-	return nil
+	return r.s.db.QueryRowContext(
+		ctx,
+		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
+		u.Email,
+		u.EncryptedPassword,
+	).Scan(&u.ID)
+
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -25,7 +31,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 	return nil, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
+func (r *UserRepository) Update(ctx context.Context, u *model.User) error {
 	// Implement the logic to update a user in the SQL database
 	return nil
 }

@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -20,7 +21,14 @@ func TestDB(t *testing.T, connectionStr string) (*sql.DB, func(...string)) {
 
 	return db, func(tables ...string) {
 		if len(tables) > 0 {
-			db.Exec("TRUNCATE %s RESTART IDENTITY CASCADE", strings.Join(tables, ", "))
+			if _, err := db.Exec(
+				fmt.Sprintf(
+					"TRUNCATE %s RESTART IDENTITY CASCADE",
+					strings.Join(tables, ", "),
+				),
+			); err != nil {
+				t.Fatalf("failed to truncate tables: %v", err)
+			}
 		}
 
 		db.Close()

@@ -1,14 +1,22 @@
 package sqlstorage_test
 
 import (
+	"context"
 	"testing"
 
-	_ "github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
+	"github.com/Redice1997/http-rest-api/internal/app/model"
+	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	// db, clear := sqlstorage.TestDB(t, connectionString)
-	// defer clear("users")
+	db, clear := sqlstorage.TestDB(t, connectionString)
+	defer clear("users")
+	storage := sqlstorage.New(db)
 
-	// u, err :=
+	err := storage.User().Create(context.Background(), &model.User{
+		Email: "user@example.org",
+	})
+
+	assert.NoError(t, err)
 }

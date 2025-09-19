@@ -4,6 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
+
+	_ "github.com/lib/pq"
 )
 
 type Storage struct {
@@ -16,11 +18,9 @@ func New(db *sql.DB) *Storage {
 }
 
 func (s *Storage) User() storage.UserRepository {
-	if s.userRepository != nil {
-		return s.userRepository
+	if s.userRepository == nil {
+		s.userRepository = &UserRepository{s: s}
 	}
-
-	s.userRepository = &UserRepository{storage: s}
 
 	return s.userRepository
 }

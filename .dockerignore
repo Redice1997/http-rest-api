@@ -1,0 +1,32 @@
+# Ignore Dockerfile
+Dockerfile
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore node modules (if present)
+node_modules
+
+# Ignore Go build output
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore Go vendor directory
+vendor/
+
+# Ignore editor/project files
+*.swp
+*.swo
+*.idea/
+*.vscode/
+*.DS_Store
+
+# Ignore test output
+*.test
+
+# Ignore log files
+*.log
