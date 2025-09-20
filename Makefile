@@ -21,6 +21,10 @@ migrate:
 	@echo "🗄️ Running database migrations..."
 	@migrate -path ./migrations -database "postgres://user:password@localhost:5432/api_db?sslmode=disable" up
 
+migrate_test:
+	@echo "🗄️ Running test database migrations..."
+	@migrate -path ./migrations -database "postgres://user:password@localhost:5432/test_api_db?sslmode=disable" up
+
 test:
 	@echo "🧪 Running tests..."
 	@go test -v -cover -race -timeout 30s ./...

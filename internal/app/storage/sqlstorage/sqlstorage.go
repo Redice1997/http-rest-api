@@ -19,7 +19,7 @@ func New(db *sql.DB) *Storage {
 
 func (s *Storage) User() storage.UserRepository {
 	if s.userRepository == nil {
-		s.userRepository = &UserRepository{s: s}
+		s.userRepository = NewUserRepository(s)
 	}
 
 	return s.userRepository

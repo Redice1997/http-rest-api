@@ -13,7 +13,7 @@ import (
 type server struct {
 	config  *Config
 	logger  *slog.Logger
-	router  *http.ServeMux
+	router  http.Handler
 	storage storage.Storage
 }
 
@@ -33,9 +33,11 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) configureRouter() {
-	s.router = http.NewServeMux()
+	r := http.NewServeMux()
 
-	s.router.Handle("/hello", mw.Wrap(s.handleHello(), mw.Logging(s.logger)))
+	r.Handle("/hello", mw.Wrap(s.handleHello(), mw.Logging(s.logger)))
+
+	s.router = r
 }
 
 func (s *server) configureLogger() {

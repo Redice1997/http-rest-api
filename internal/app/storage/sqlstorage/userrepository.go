@@ -2,12 +2,19 @@ package sqlstorage
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
+	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
 type UserRepository struct {
 	s *Storage
+}
+
+func NewUserRepository(s *Storage) *UserRepository {
+	return &UserRepository{s: s}
 }
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
@@ -22,21 +29,71 @@ func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	// Implement the logic to get a user by email from the SQL database
-	return nil, nil
+
+	u := new(model.User)
+
+	if err := r.s.db.QueryRowContext(
+		ctx,
+		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
+		email,
+	).Scan(
+		&u.ID,
+		&u.Email,
+		&u.EncryptedPassword,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrRecordNotFound
+		}
+
+		return nil, err
+	}
+
+	return u, nil
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
-	// Implement the logic to get a user by ID from the SQL database
-	return nil, nil
+
+	u := new(model.User)
+
+	if err := r.s.db.QueryRowContext(
+		ctx,
+		"SELECT id, email, encrypted_password FROM users WHERE id = $1",
+		id,
+	).Scan(
+		&u.ID,
+		&u.Email,
+		&u.EncryptedPassword,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrRecordNotFound
+		}
+
+		return nil, err
+	}
+
+	return u, nil
 }
 
 func (r *UserRepository) Update(ctx context.Context, u *model.User) error {
-	// Implement the logic to update a user in the SQL database
-	return nil
+
+	_, err := r.s.db.ExecContext(
+		ctx,
+		"UPDATE users SET email = $1, encrypted_password = $2 WHERE id = $3",
+		u.Email,
+		u.EncryptedPassword,
+		u.ID,
+	)
+
+	return err
 }
 
 func (r *UserRepository) Delete(ctx context.Context, id int64) error {
-	// Implement the logic to delete a user from the SQL database
-	return nil
+
+	_, err := r.s.db.ExecContext(
+		ctx,
+		"DELETE FROM users WHERE id = $1",
+		id,
+	)
+
+	return err
 }

@@ -11,5 +11,9 @@ func New() *Storage {
 }
 
 func (s *Storage) User() storage.UserRepository {
-	panic("implement me")
+	if s.userRepository == nil {
+		s.userRepository = NewUserRepository(s)
+	}
+
+	return s.userRepository
 }
