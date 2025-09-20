@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	mw "github.com/Redice1997/http-rest-api/internal/app/api/middleware"
+	mw "github.com/Redice1997/http-rest-api/internal/app/router/stdrouter/middleware"
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
@@ -26,6 +26,10 @@ func newServer(config *Config, storage storage.Storage) *server {
 	s.configureRouter()
 
 	return s
+}
+
+func (s *server) listenAndServe() error {
+	return http.ListenAndServe(s.config.ServerAddress, s)
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,15 +36,11 @@ func Start(cfg *Config) error {
 		}
 	}()
 
-	return srv.listenAndServe(cfg)
+	return srv.listenAndServe()
 }
 
 func (s *server) shutdown(ctx context.Context) error {
 	return nil
-}
-
-func (s *server) listenAndServe(cfg *Config) error {
-	return http.ListenAndServe(cfg.ServerAddress, s)
 }
 
 func newDB(connectionString string) (*sql.DB, error) {
