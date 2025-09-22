@@ -25,7 +25,7 @@ func Start(cfg *Config) error {
 
 	srv.logger.Info("Starting API server", "address", cfg.ServerAddress)
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
