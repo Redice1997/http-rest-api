@@ -50,7 +50,7 @@ func (api *api) Start(ctx context.Context) error {
 		<-egCtx.Done()
 		api.lg.Info("Shutting down API server")
 
-		toCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		toCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if err := api.srv.Shutdown(toCtx); err != nil {
@@ -110,15 +110,4 @@ func (a *api) response(w http.ResponseWriter, status int, data any) {
 func (a *api) error(w http.ResponseWriter, status int, err error) {
 	a.lg.Error("failed to encode response", "error", err)
 	a.response(w, status, map[string]string{"error": err.Error()})
-}
-
-func (a *api) handleHello() http.HandlerFunc {
-
-	type response struct {
-		Message string `json:"message"`
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		a.response(w, http.StatusOK, &response{Message: "Hello, World!"})
-	}
 }

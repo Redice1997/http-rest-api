@@ -1,18 +1,27 @@
 package api
 
-// func TestAPIServer_HandleHello(t *testing.T) {
-// 	s := newServer(
-// 		NewConfig(),
-// 		storage.New(),
-// 	)
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-// 	rec := httptest.NewRecorder()
-// 	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
+	"github.com/Redice1997/http-rest-api/internal/app/storage/memorystorage"
+	"github.com/stretchr/testify/assert"
+)
 
-// 	s.ServeHTTP(rec, req)
+func TestAPIServer_HandleHello(t *testing.T) {
+	s := New(
+		NewConfig(),
+		memorystorage.New(),
+	)
 
-// 	assert.Equal(t, http.StatusOK, rec.Code)
-// 	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
-// 	assert.NotEmpty(t, rec.Body.String())
-// 	assert.JSONEq(t, `{"message":"Hello, World!"}`, rec.Body.String())
-// }
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
+
+	s.srv.Handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+	assert.NotEmpty(t, rec.Body.String())
+	assert.JSONEq(t, `{"message":"Hello, World!"}`, rec.Body.String())
+}
