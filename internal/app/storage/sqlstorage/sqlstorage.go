@@ -13,14 +13,27 @@ type Storage struct {
 	userRepository *UserRepository
 }
 
-func New(db *sql.DB) *Storage {
-	return &Storage{db: db}
+func New(connectionStirng string) (*Storage, error) {
+	db, err := sql.Open("postgres", connectionStirng)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	s := new(Storage)
+	s.db = db
+	s.userRepository = NewUserRepository(s)
+
+	return s, nil
 }
 
 func (s *Storage) User() storage.UserRepository {
-	if s.userRepository == nil {
-		s.userRepository = NewUserRepository(s)
-	}
-
 	return s.userRepository
+}
+
+func (s *Storage) Close() error {
+	return s.db.Close()
 }

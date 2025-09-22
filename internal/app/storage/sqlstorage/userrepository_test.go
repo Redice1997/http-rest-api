@@ -11,9 +11,8 @@ import (
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	db, clear := sqlstorage.TestDB(t, connectionString)
+	s, clear := sqlstorage.NewTestStorage(t, connectionString)
 	defer clear("users")
-	s := sqlstorage.New(db)
 
 	err := s.User().Create(context.Background(), &model.User{
 		Email: "user@example.org",
@@ -24,9 +23,8 @@ func TestUserRepository_Create(t *testing.T) {
 
 func TestUserRepository_GetByEmail(t *testing.T) {
 
-	db, clear := sqlstorage.TestDB(t, connectionString)
+	s, clear := sqlstorage.NewTestStorage(t, connectionString)
 	defer clear("users")
-	s := sqlstorage.New(db)
 
 	email := "user@example.org"
 

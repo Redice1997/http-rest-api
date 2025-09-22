@@ -1,27 +1,22 @@
 package sqlstorage
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 	"testing"
 )
 
-func TestDB(t *testing.T, connectionStr string) (*sql.DB, func(...string)) {
+func NewTestStorage(t *testing.T, connectionStr string) (*Storage, func(...string)) {
 	t.Helper()
 
-	db, err := sql.Open("postgres", connectionStr)
+	storage, err := New(connectionStr)
 	if err != nil {
-		t.Fatalf("failed to open db connection: %v", err)
+		t.Fatalf("failed to create storage: %v", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		t.Fatalf("failed to ping db: %v", err)
-	}
-
-	return db, func(tables ...string) {
+	return storage, func(tables ...string) {
 		if len(tables) > 0 {
-			if _, err := db.Exec(
+			if _, err := storage.db.Exec(
 				fmt.Sprintf(
 					"TRUNCATE %s RESTART IDENTITY CASCADE",
 					strings.Join(tables, ", "),
@@ -31,6 +26,6 @@ func TestDB(t *testing.T, connectionStr string) (*sql.DB, func(...string)) {
 			}
 		}
 
-		db.Close()
+		storage.Close()
 	}
 }

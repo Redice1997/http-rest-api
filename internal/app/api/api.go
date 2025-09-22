@@ -2,56 +2,123 @@ package api
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"time"
 
-	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
+	"github.com/Redice1997/http-rest-api/internal/app/storage"
 
-	_ "golang.org/x/sync/errgroup"
+	"golang.org/x/sync/errgroup"
 )
 
+type api struct {
+	db  storage.Storage
+	srv *http.Server
+	lg  *slog.Logger
+}
+
+func New(cfg *Config, db storage.Storage) *api {
+
+	a := new(api)
+
+	a.db = db
+	a.configureServer(cfg.ServerAddress)
+	a.configureLogger(cfg.LogLevel)
+
+	return a
+}
+
 // Start initializes and starts the API server
-func Start(cfg *Config) error {
+func (api *api) Start(ctx context.Context) error {
 
-	db, err := newDB(cfg.DbConnectionString)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+	eg, egCtx := errgroup.WithContext(ctx)
 
-	srv := newServer(cfg, sqlstorage.New(db))
+	eg.Go(func() error {
+		api.lg.Info("Starting API server", "address", api.srv.Addr)
 
-	srv.logger.Info("Starting API server", "address", cfg.ServerAddress)
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill, syscall.SIGTERM)
-	defer stop()
-
-	go func() {
-		<-ctx.Done()
-		srv.logger.Info("Shutting down API server")
-		if err := srv.shutdown(context.Background()); err != nil {
-			srv.logger.Error("Error shutting down server", "error", err)
+		err := api.srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
 		}
-	}()
+		return nil
+	})
 
-	return srv.listenAndServe()
+	eg.Go(func() error {
+		<-egCtx.Done()
+		api.lg.Info("Shutting down API server")
+
+		toCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+
+		if err := api.srv.Shutdown(toCtx); err != nil {
+			api.lg.Error("Error shutting down server", "error", err)
+			return err
+		}
+
+		api.lg.Info("API server stopped gracefully")
+		return nil
+	})
+
+	return eg.Wait()
 }
 
-func (s *server) shutdown(ctx context.Context) error {
-	return nil
+func (a *api) configureLogger(logLever string) {
+
+	var level slog.Level
+	switch logLever {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+
+	a.lg = logger
 }
 
-func newDB(connectionString string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", connectionString)
-	if err != nil {
-		return nil, err
+func (a *api) configureServer(addr string) {
+	h := http.NewServeMux()
+
+	h.Handle("/hello", a.handleHello())
+
+	a.srv = &http.Server{
+		Addr:    addr,
+		Handler: h,
+	}
+}
+
+func (a *api) response(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			a.error(w, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (a *api) error(w http.ResponseWriter, status int, err error) {
+	a.lg.Error("failed to encode response", "error", err)
+	a.response(w, status, map[string]string{"error": err.Error()})
+}
+
+func (a *api) handleHello() http.HandlerFunc {
+
+	type response struct {
+		Message string `json:"message"`
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
+	return func(w http.ResponseWriter, r *http.Request) {
+		a.response(w, http.StatusOK, &response{Message: "Hello, World!"})
 	}
-
-	return db, nil
 }

@@ -13,3 +13,7 @@ func NewConfig() *Config {
 		ServerAddress: ":8080",
 	}
 }
+
+func (c *Config) GetConnectionString() string {
+	return c.DbConnectionString
+}
