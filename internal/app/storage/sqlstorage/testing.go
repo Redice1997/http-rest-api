@@ -6,7 +6,9 @@ import (
 	"testing"
 )
 
-func NewTestStorage(t *testing.T, connectionStr string) (*Storage, func(...string)) {
+type Cleanup func(...string)
+
+func NewTestStorage(t *testing.T, connectionStr string) (*Storage, Cleanup) {
 	t.Helper()
 
 	storage, err := New(connectionStr)
