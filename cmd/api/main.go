@@ -41,8 +41,8 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
-	// Entry point for the API server
-	if err := api.New(cfg, db).Start(ctx); err != nil {
+
+	if err := api.New(cfg.ServerAddress, cfg.LogLevel, db).Start(ctx); err != nil {
 		log.Fatalf("Failed to run API server: %v", err)
 	}
 }

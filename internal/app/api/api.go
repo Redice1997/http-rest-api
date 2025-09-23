@@ -20,13 +20,13 @@ type api struct {
 	lg  *slog.Logger
 }
 
-func New(cfg *Config, db storage.Storage) *api {
+func New(srvAddress, logLevel string, db storage.Storage) *api {
 
 	a := new(api)
 
 	a.db = db
-	a.configureServer(cfg.ServerAddress)
-	a.configureLogger(cfg.LogLevel)
+	a.configureServer(srvAddress)
+	a.configureLogger(logLevel)
 
 	return a
 }

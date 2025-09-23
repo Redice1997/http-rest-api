@@ -10,8 +10,10 @@ import (
 )
 
 func TestAPIServer_HandleHello(t *testing.T) {
+	cfg := NewConfig()
 	s := New(
-		NewConfig(),
+		cfg.ServerAddress,
+		cfg.LogLevel,
 		memorystorage.New(),
 	)
 
