@@ -14,15 +14,12 @@ func TestUserRepository_Create(t *testing.T) {
 	s, clear := sqlstorage.NewTestStorage(t, connectionString)
 	defer clear("users")
 
-	err := s.User().Create(context.Background(), &model.User{
-		Email: "user@example.org",
-	})
+	err := s.User().Create(context.Background(), model.TestUser(t))
 
 	assert.NoError(t, err)
 }
 
 func TestUserRepository_GetByEmail(t *testing.T) {
-
 	s, clear := sqlstorage.NewTestStorage(t, connectionString)
 	defer clear("users")
 
@@ -32,11 +29,11 @@ func TestUserRepository_GetByEmail(t *testing.T) {
 
 	assert.ErrorIs(t, err, storage.ErrRecordNotFound)
 
-	s.User().Create(context.Background(), &model.User{
-		Email: email,
-	})
+	u := model.TestUser(t)
+	u.Email = email
+	s.User().Create(context.Background(), u)
 
-	u, err := s.User().GetByEmail(context.Background(), email)
+	u, err = s.User().GetByEmail(context.Background(), email)
 
 	assert.NoError(t, err)
 	assert.Equal(t, email, u.Email)

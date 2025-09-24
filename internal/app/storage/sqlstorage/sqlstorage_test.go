@@ -12,7 +12,7 @@ var (
 func TestMain(m *testing.M) {
 	connectionString = os.Getenv("TEST_DB_CONNECTION")
 	if connectionString == "" {
-		connectionString = "host=localhost port=5432 user=user password=password dbname=test_api_db sslmode=disable"
+		connectionString = "host=localhost port=5432 user=api password=password dbname=test_api_db sslmode=disable"
 	}
 
 	os.Exit(m.Run())

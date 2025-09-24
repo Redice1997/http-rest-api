@@ -19,13 +19,16 @@ func NewUserRepository(s *Storage) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 
+	if err := u.BeforeCreate(); err != nil {
+		return err
+	}
+
 	return r.s.db.QueryRowContext(
 		ctx,
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
 	).Scan(&u.ID)
-
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {

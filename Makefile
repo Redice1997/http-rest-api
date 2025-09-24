@@ -1,10 +1,8 @@
 all: build run
-		
+
 setup:
-	@go get -u github.com/alecthomas/gometalinter
-	@go get -u golang.org/x/tools/cmd/cover
-	@go get -u go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-	@gometalinter --install --update
+	@go install golang.org/x/tools/cmd/cover
+	@go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 init:
 	@go mod tidy
@@ -19,14 +17,22 @@ run:
 
 migrate:
 	@echo "🗄️ Running database migrations..."
-	@migrate -path ./migrations -database "postgres://user:password@localhost:5432/api_db?sslmode=disable" up
+	@migrate -path ./migrations -database "postgres://api:password@localhost:5432/api_db?sslmode=disable" up
 
 migrate_test:
 	@echo "🗄️ Running test database migrations..."
-	@migrate -path ./migrations -database "postgres://user:password@localhost:5432/test_api_db?sslmode=disable" up
+	@migrate -path ./migrations -database "postgres://api:password@localhost:5432/test_api_db?sslmode=disable" up
 
 test:
 	@echo "🧪 Running tests..."
 	@go test -v -cover -race -timeout 30s ./...
 
-.PHONY: all setup init lint build migrate test run
+compose:
+	@echo "🐳 Starting the API server with Docker Compose..."
+	@docker-compose up -d --scale api=2
+
+lint:
+	@echo "Linting the code..."
+	@golangci-lint run
+
+.PHONY: all setup init lint build migrate test run compose lint
