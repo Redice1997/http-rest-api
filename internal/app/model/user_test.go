@@ -1,6 +1,7 @@
 package model_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
@@ -28,7 +29,17 @@ func TestUser_Validate(t *testing.T) {
 			isValid: true,
 		},
 		{
-			name: "invalid password user",
+			name: "with encrypted password",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = ""
+				u.EncryptedPassword = "encrypted_password"
+				return u
+			},
+			isValid: true,
+		},
+		{
+			name: "empty password user",
 			u: func() *model.User {
 				u := model.TestUser(t)
 				u.Password = ""
@@ -41,6 +52,24 @@ func TestUser_Validate(t *testing.T) {
 			u: func() *model.User {
 				u := model.TestUser(t)
 				u.Email = ""
+				return u
+			},
+			isValid: false,
+		},
+		{
+			name: "short password user",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = "pas"
+				return u
+			},
+			isValid: false,
+		},
+		{
+			name: "long password user",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = strings.Repeat("a", 101)
 				return u
 			},
 			isValid: false,

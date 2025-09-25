@@ -1,19 +1,24 @@
 package model
 
 import (
-	"github.com/go-playground/validator/v10"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	ID                int64  `json:"id"`
-	Email             string `json:"email" validate:"required,email"`
-	Password          string `json:"password,omitempty" validate:"required,min=8,max=100"`
+	Email             string `json:"email"`
+	Password          string `json:"password,omitempty"`
 	EncryptedPassword string `json:"-"`
 }
 
 func (u *User) Validate() error {
-	return validate.Struct(u)
+	return validation.ValidateStruct(
+		u,
+		validation.Field(&u.Email, validation.Required, is.Email),
+		validation.Field(&u.Password, validation.By(requiredIf(u.EncryptedPassword == "")), validation.Length(6, 100)),
+	)
 }
 
 func (u *User) BeforeCreate() error {
@@ -34,5 +39,3 @@ func encryptPassword(password string) (string, error) {
 	}
 	return string(b), nil
 }
-
-var validate = validator.New(validator.WithRequiredStructEnabled())
