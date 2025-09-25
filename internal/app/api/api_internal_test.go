@@ -1,29 +1,121 @@
 package api
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Redice1997/http-rest-api/internal/app/model"
+	"github.com/Redice1997/http-rest-api/internal/app/router/stdrouter"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/memorystorage"
+	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIServer_HandleHello(t *testing.T) {
+func TestAPI_HandleUserCreate(t *testing.T) {
 	cfg := NewConfig()
+	db, cleanup := sqlstorage.NewTestStorage(t, cfg.DbConnectionString)
+	defer cleanup("users")
 	s := New(
-		cfg.ServerAddress,
-		cfg.LogLevel,
-		memorystorage.New(),
+		cfg,
+		stdrouter.New(),
+		db,
 	)
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
+	testCases := []struct {
+		name     string
+		request  any
+		expected int
+	}{
+		{
+			name: "valid",
+			request: map[string]any{
+				"email":    "john.doe@example.com",
+				"password": "password123",
+			},
+			expected: http.StatusCreated,
+		},
+		{
+			name: "invalid",
+			request: map[string]any{
+				"email":    "john.doe",
+				"password": "password123",
+			},
+			expected: http.StatusUnprocessableEntity,
+		},
+	}
 
-	s.srv.Handler.ServeHTTP(rec, req)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			b := bytes.NewBuffer([]byte{})
+			json.NewEncoder(b).Encode(tc.request)
+			req := httptest.NewRequest(http.MethodPost, "/users", b)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
-	assert.NotEmpty(t, rec.Body.String())
-	assert.JSONEq(t, `{"message":"Hello, World!"}`, rec.Body.String())
+			s.srv.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.expected, rec.Code)
+		})
+	}
+}
+
+func TestAPI_HandleSessionCreate(t *testing.T) {
+	var (
+		cfg = NewConfig()
+		rt  = stdrouter.New()
+		db  = memorystorage.New()
+		s   = New(
+			cfg,
+			rt,
+			db,
+		)
+	)
+
+	u := model.TestUser(t)
+
+	db.User().Create(context.Background(), u)
+
+	testCases := []struct {
+		name     string
+		JSON     any
+		expected int
+	}{
+		{
+			name: "valid",
+			JSON: map[string]string{
+				"email":    u.Email,
+				"password": u.Password,
+			},
+			expected: http.StatusOK,
+		},
+		{
+			name:     "invalid payload",
+			JSON:     "invalid",
+			expected: http.StatusBadRequest,
+		},
+		{
+			name: "invalid email",
+			JSON: map[string]string{
+				"email":    "john@example.org",
+				"password": u.Password,
+			},
+			expected: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			b := bytes.NewBuffer([]byte{})
+			json.NewEncoder(b).Encode(tc.JSON)
+			req := httptest.NewRequest(http.MethodPost, "/sessions", b)
+
+			s.srv.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.expected, rec.Code)
+		})
+	}
 }

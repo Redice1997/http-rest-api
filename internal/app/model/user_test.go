@@ -57,6 +57,15 @@ func TestUser_Validate(t *testing.T) {
 			isValid: false,
 		},
 		{
+			name: "invalid email format",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Email = "abc.org"
+				return u
+			},
+			isValid: false,
+		},
+		{
 			name: "short password user",
 			u: func() *model.User {
 				u := model.TestUser(t)

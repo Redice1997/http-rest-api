@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Redice1997/http-rest-api/internal/app/api"
+	"github.com/Redice1997/http-rest-api/internal/app/router/stdrouter"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
 	"gopkg.in/yaml.v3"
 )
@@ -42,7 +43,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
-	if err := api.New(cfg.ServerAddress, cfg.LogLevel, db).Start(ctx); err != nil {
+	if err := api.New(cfg, stdrouter.New(), db).Start(ctx); err != nil {
 		log.Fatalf("Failed to run API server: %v", err)
 	}
 }

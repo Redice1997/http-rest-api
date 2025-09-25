@@ -4,5 +4,5 @@ import "net/http"
 
 type Router interface {
 	Handler() http.Handler
-	Configure()
+	Configure(createUser, createSession http.HandlerFunc)
 }

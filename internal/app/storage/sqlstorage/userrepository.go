@@ -19,6 +19,10 @@ func NewUserRepository(s *Storage) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 
+	if err := u.Validate(); err != nil {
+		return err
+	}
+
 	if err := u.BeforeCreate(); err != nil {
 		return err
 	}

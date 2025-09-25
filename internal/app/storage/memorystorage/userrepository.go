@@ -28,6 +28,14 @@ func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 	r.m.Lock()
 	defer r.m.Unlock()
 
+	if err := u.Validate(); err != nil {
+		return err
+	}
+
+	if err := u.BeforeCreate(); err != nil {
+		return err
+	}
+
 	u.ID = r.id.Add(1)
 
 	r.users[u.ID] = u

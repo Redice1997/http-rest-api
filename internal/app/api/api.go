@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Redice1997/http-rest-api/internal/app/router"
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 
 	"golang.org/x/sync/errgroup"
@@ -20,13 +21,13 @@ type api struct {
 	lg  *slog.Logger
 }
 
-func New(srvAddress, logLevel string, db storage.Storage) *api {
+func New(cfg *Config, rt router.Router, db storage.Storage) *api {
 
 	a := new(api)
 
 	a.db = db
-	a.configureServer(srvAddress)
-	a.configureLogger(logLevel)
+	a.configureServer(cfg.ServerAddress, rt)
+	a.configureLogger(cfg.LogLevel)
 
 	return a
 }
@@ -86,28 +87,30 @@ func (a *api) configureLogger(logLever string) {
 	a.lg = logger
 }
 
-func (a *api) configureServer(addr string) {
-	h := http.NewServeMux()
+func (a *api) configureServer(addr string, rt router.Router) {
 
-	h.Handle("/hello", a.handleHello())
+	rt.Configure(
+		a.handleUserCreate(),
+		a.handleSessionCreate(),
+	)
 
 	a.srv = &http.Server{
 		Addr:    addr,
-		Handler: h,
+		Handler: rt.Handler(),
 	}
 }
 
-func (a *api) response(w http.ResponseWriter, status int, data any) {
+func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
 		if err := json.NewEncoder(w).Encode(data); err != nil {
-			a.error(w, http.StatusInternalServerError, err)
+			a.error(w, r, http.StatusInternalServerError, err)
 		}
 	}
 }
 
-func (a *api) error(w http.ResponseWriter, status int, err error) {
+func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.lg.Error("failed to encode response", "error", err)
-	a.response(w, status, map[string]string{"error": err.Error()})
+	a.respond(w, r, status, map[string]string{"error": err.Error()})
 }
