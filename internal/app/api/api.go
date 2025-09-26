@@ -9,24 +9,27 @@ import (
 	"os"
 	"time"
 
-	"github.com/Redice1997/http-rest-api/internal/app/router"
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 
 	"golang.org/x/sync/errgroup"
 )
 
 type api struct {
-	db  storage.Storage
-	srv *http.Server
-	lg  *slog.Logger
+	sess sessions.Store
+	db   storage.Storage
+	srv  *http.Server
+	lg   *slog.Logger
 }
 
-func New(cfg *Config, rt router.Router, db storage.Storage) *api {
+func New(cfg *Config, db storage.Storage) *api {
 
 	a := new(api)
 
 	a.db = db
-	a.configureServer(cfg.ServerAddress, rt)
+	a.sess = sessions.NewCookieStore([]byte(cfg.SessionKey))
+	a.configureServer(cfg.ServerAddress)
 	a.configureLogger(cfg.LogLevel)
 
 	return a
@@ -87,16 +90,17 @@ func (a *api) configureLogger(logLever string) {
 	a.lg = logger
 }
 
-func (a *api) configureServer(addr string, rt router.Router) {
+func (a *api) configureServer(addr string) {
+	h := mux.NewRouter()
 
-	rt.Configure(
-		a.handleUserCreate(),
-		a.handleSessionCreate(),
-	)
+	h.Use(mux.CORSMethodMiddleware(h))
+
+	h.HandleFunc("/users", a.handleUserCreate()).Methods("POST")
+	h.HandleFunc("/sessions", a.handleSessionCreate()).Methods("POST")
 
 	a.srv = &http.Server{
 		Addr:    addr,
-		Handler: rt.Handler(),
+		Handler: h,
 	}
 }
 
@@ -111,6 +115,10 @@ func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data a
 }
 
 func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err error) {
-	a.lg.Error("failed to encode response", "error", err)
+	a.lg.Error("Error occures", "error", err)
+	a.errorNoLog(w, r, status, err)
+}
+
+func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.respond(w, r, status, map[string]string{"error": err.Error()})
 }

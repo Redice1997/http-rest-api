@@ -6,10 +6,12 @@ import (
 	"net/http"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
+	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
 var (
 	errInvalidEmailOrPassword = errors.New("invalid email or password")
+	errAlreadyExists          = errors.New("already exists")
 )
 
 func (a *api) handleUserCreate() http.HandlerFunc {
@@ -25,14 +27,20 @@ func (a *api) handleUserCreate() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			a.error(w, r, http.StatusMethodNotAllowed, nil)
+
+		req := new(request)
+
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			a.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
-		req := new(request)
-		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			a.error(w, r, http.StatusBadRequest, err)
+		if _, err := a.db.User().GetByEmail(r.Context(), req.Email); errors.Is(err, storage.ErrRecordNotFound) {
+		} else if err != nil {
+			a.error(w, r, http.StatusInternalServerError, err)
+			return
+		} else {
+			a.error(w, r, http.StatusBadRequest, errAlreadyExists)
 			return
 		}
 
@@ -54,6 +62,7 @@ func (a *api) handleUserCreate() http.HandlerFunc {
 }
 
 func (a *api) handleSessionCreate() http.HandlerFunc {
+	const sessionName string = "http-rest-api-session"
 
 	type request struct {
 		Email    string `json:"email"`
@@ -61,12 +70,9 @@ func (a *api) handleSessionCreate() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			a.error(w, r, http.StatusMethodNotAllowed, nil)
-			return
-		}
 
 		req := new(request)
+
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			a.error(w, r, http.StatusBadRequest, err)
 			return
@@ -75,6 +81,19 @@ func (a *api) handleSessionCreate() http.HandlerFunc {
 		u, err := a.db.User().GetByEmail(r.Context(), req.Email)
 		if err != nil || !u.ComparePassword(req.Password) {
 			a.error(w, r, http.StatusUnauthorized, errInvalidEmailOrPassword)
+			return
+		}
+
+		session, err := a.sess.Get(r, sessionName)
+		if err != nil {
+			a.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		session.Values["user_id"] = u.ID
+
+		if err := session.Save(r, w); err != nil {
+			a.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
-	"github.com/Redice1997/http-rest-api/internal/app/router/stdrouter"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/memorystorage"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,6 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 	defer cleanup("users")
 	s := New(
 		cfg,
-		stdrouter.New(),
 		db,
 	)
 
@@ -63,17 +61,8 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 }
 
 func TestAPI_HandleSessionCreate(t *testing.T) {
-	var (
-		cfg = NewConfig()
-		rt  = stdrouter.New()
-		db  = memorystorage.New()
-		s   = New(
-			cfg,
-			rt,
-			db,
-		)
-	)
-
+	db := memorystorage.New()
+	s := New(NewConfig(), db)
 	u := model.TestUser(t)
 
 	db.User().Create(context.Background(), u)
