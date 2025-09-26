@@ -51,7 +51,7 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
 			json.NewEncoder(b).Encode(tc.request)
-			req := httptest.NewRequest(http.MethodPost, "/users", b)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/users", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
 
@@ -100,7 +100,7 @@ func TestAPI_HandleSessionCreate(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
 			json.NewEncoder(b).Encode(tc.JSON)
-			req := httptest.NewRequest(http.MethodPost, "/sessions", b)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
 

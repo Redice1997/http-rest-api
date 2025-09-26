@@ -95,8 +95,14 @@ func (a *api) configureServer(addr string) {
 
 	h.Use(mux.CORSMethodMiddleware(h))
 
-	h.HandleFunc("/users", a.handleUserCreate()).Methods("POST")
-	h.HandleFunc("/sessions", a.handleSessionCreate()).Methods("POST")
+	v1 := h.PathPrefix("/api/v1").Subrouter()
+	{
+		auth := v1.PathPrefix("/auth").Subrouter()
+		{
+			auth.HandleFunc("/users", a.handleUserCreate()).Methods("POST")
+			auth.HandleFunc("/sessions", a.handleSessionCreate()).Methods("POST")
+		}
+	}
 
 	a.srv = &http.Server{
 		Addr:    addr,
@@ -115,7 +121,7 @@ func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data a
 }
 
 func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err error) {
-	a.lg.Error("Error occures", "error", err)
+	a.lg.Error("Error occurred", "error", err)
 	a.errorNoLog(w, r, status, err)
 }
 
