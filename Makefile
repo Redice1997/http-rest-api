@@ -1,8 +1,9 @@
-all: build run
+all: docs build run
 
 setup:
 	@go install golang.org/x/tools/cmd/cover
 	@go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@go install github.com/swaggo/swag/cmd/swag@latest
 
 init:
 	@go mod tidy
@@ -35,4 +36,8 @@ lint:
 	@echo "Linting the code..."
 	@golangci-lint run
 
-.PHONY: all setup init lint build migrate test run compose lint
+docs:
+	@echo "Generating API documentation..."
+	@swag init -g ./cmd/api/main.go --output docs/
+
+.PHONY: all setup init lint build migrate test run compose lint docs

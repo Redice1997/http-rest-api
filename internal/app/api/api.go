@@ -10,13 +10,20 @@ import (
 	"time"
 
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 
 	"golang.org/x/sync/errgroup"
+
+	_ "net/http/pprof"
+
+	_ "github.com/Redice1997/http-rest-api/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type api struct {
+	cfg  *Config
 	sess sessions.Store
 	db   storage.Storage
 	srv  *http.Server
@@ -24,26 +31,26 @@ type api struct {
 }
 
 func New(cfg *Config, db storage.Storage) *api {
-
 	a := new(api)
 
+	a.cfg = cfg
 	a.db = db
-	a.sess = sessions.NewCookieStore([]byte(cfg.SessionKey))
-	a.configureServer(cfg.ServerAddress)
-	a.configureLogger(cfg.LogLevel)
+	a.configureSessionStore()
+	a.configureServer()
+	a.configureLogger()
 
 	return a
 }
 
 // Start initializes and starts the API server
-func (api *api) Start(ctx context.Context) error {
+func (a *api) Start(ctx context.Context) error {
 
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		api.lg.Info("Starting API server", "address", api.srv.Addr)
+		a.lg.Info("Starting API server", "address", a.srv.Addr)
 
-		err := api.srv.ListenAndServe()
+		err := a.srv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
@@ -52,27 +59,31 @@ func (api *api) Start(ctx context.Context) error {
 
 	eg.Go(func() error {
 		<-egCtx.Done()
-		api.lg.Info("Shutting down API server")
+		a.lg.Info("Shutting down API server")
 
 		toCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := api.srv.Shutdown(toCtx); err != nil {
-			api.lg.Error("Error shutting down server", "error", err)
+		if err := a.srv.Shutdown(toCtx); err != nil {
+			a.lg.Error("Error shutting down server", "error", err)
 			return err
 		}
 
-		api.lg.Info("API server stopped gracefully")
+		a.lg.Info("API server stopped gracefully")
 		return nil
 	})
 
 	return eg.Wait()
 }
 
-func (a *api) configureLogger(logLever string) {
+func (a *api) configureSessionStore() {
+	a.sess = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
+}
+
+func (a *api) configureLogger() {
 
 	var level slog.Level
-	switch logLever {
+	switch a.cfg.LogLevel {
 	case "debug":
 		level = slog.LevelDebug
 	case "info":
@@ -90,28 +101,54 @@ func (a *api) configureLogger(logLever string) {
 	a.lg = logger
 }
 
-func (a *api) configureServer(addr string) {
+func (a *api) configureServer() {
 	h := mux.NewRouter()
 
-	h.Use(mux.CORSMethodMiddleware(h))
+	// MIDDLEWARES
+	h.Use(a.mwSetRequestID)
+	h.Use(a.mwLogRequest)
+	h.Use(handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cookie"}),
+	))
 
+	if a.cfg.LogLevel == "debug" {
+		// PPROF
+		h.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+		// Swagger UI
+		h.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.DeepLinking(true),
+			httpSwagger.DocExpansion("none"),
+			httpSwagger.DomID("swagger-ui"),
+		)).Methods(http.MethodGet)
+		h.PathPrefix("/swagger/doc.json").Handler(httpSwagger.WrapHandler).Methods(http.MethodGet)
+	}
+
+	// OPTIONS
+	h.HandleFunc("/{path:.*}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods(http.MethodOptions)
+
+	// API V1
 	v1 := h.PathPrefix("/api/v1").Subrouter()
 	{
 		auth := v1.PathPrefix("/auth").Subrouter()
 		{
-			auth.HandleFunc("/users", a.handleUserCreate()).Methods("POST")
-			auth.HandleFunc("/sessions", a.handleSessionCreate()).Methods("POST")
-		}
+			auth.HandleFunc("/users", a.handleUserCreate()).Methods(http.MethodPost)
+			auth.HandleFunc("/sessions", a.handleSessionCreate()).Methods(http.MethodPost)
 
-		private := v1.NewRoute().Subrouter()
-		{
-			private.Use(a.authenticate)
-			private.HandleFunc("/whoami", a.handleWhoAmI()).Methods("GET")
+			private := auth.NewRoute().Subrouter()
+			{
+				private.Use(a.mwAuth)
+				private.HandleFunc("/whoami", a.handleWhoAmI()).Methods(http.MethodGet)
+			}
 		}
 	}
 
 	a.srv = &http.Server{
-		Addr:    addr,
+		Addr:    a.cfg.ServerAddress,
 		Handler: h,
 	}
 }
@@ -132,5 +169,7 @@ func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err erro
 }
 
 func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
-	a.respond(w, r, status, map[string]string{"error": err.Error()})
+	a.respond(w, r, status, &ErrorResponse{
+		Error: err.Error(),
+	})
 }

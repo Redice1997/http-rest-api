@@ -150,7 +150,7 @@ func TestAPI_Authenticate(t *testing.T) {
 				Name:  SessionName,
 				Value: cookieStr,
 			})
-			s.authenticate(handler).ServeHTTP(rec, req)
+			s.mwAuth(handler).ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expected, rec.Code)
 		})
