@@ -9,11 +9,6 @@ import (
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
-var (
-	errInvalidEmailOrPassword = errors.New("invalid email or password")
-	errAlreadyExists          = errors.New("already exists")
-)
-
 func (a *api) handleUserCreate() http.HandlerFunc {
 
 	type request struct {
@@ -40,7 +35,7 @@ func (a *api) handleUserCreate() http.HandlerFunc {
 			a.error(w, r, http.StatusInternalServerError, err)
 			return
 		} else {
-			a.error(w, r, http.StatusBadRequest, errAlreadyExists)
+			a.error(w, r, http.StatusBadRequest, ErrAlreadyExists)
 			return
 		}
 
@@ -62,7 +57,6 @@ func (a *api) handleUserCreate() http.HandlerFunc {
 }
 
 func (a *api) handleSessionCreate() http.HandlerFunc {
-	const sessionName string = "http-rest-api-session"
 
 	type request struct {
 		Email    string `json:"email"`
@@ -80,11 +74,11 @@ func (a *api) handleSessionCreate() http.HandlerFunc {
 
 		u, err := a.db.User().GetByEmail(r.Context(), req.Email)
 		if err != nil || !u.ComparePassword(req.Password) {
-			a.error(w, r, http.StatusUnauthorized, errInvalidEmailOrPassword)
+			a.error(w, r, http.StatusUnauthorized, ErrInvalidEmailOrPassword)
 			return
 		}
 
-		session, err := a.sess.Get(r, sessionName)
+		session, err := a.sess.Get(r, SessionName)
 		if err != nil {
 			a.error(w, r, http.StatusInternalServerError, err)
 			return
@@ -98,5 +92,26 @@ func (a *api) handleSessionCreate() http.HandlerFunc {
 		}
 
 		a.respond(w, r, http.StatusOK, nil)
+	}
+}
+
+func (a *api) handleWhoAmI() http.HandlerFunc {
+
+	type response struct {
+		ID    int64  `json:"id"`
+		Email string `json:"email"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		u := r.Context().Value(CtxUserKey).(*model.User)
+		if u == nil {
+			a.error(w, r, http.StatusUnauthorized, ErrUnauthorized)
+			return
+		}
+
+		a.respond(w, r, http.StatusOK, &response{
+			ID:    u.ID,
+			Email: u.Email,
+		})
 	}
 }

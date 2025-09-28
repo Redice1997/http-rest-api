@@ -102,6 +102,12 @@ func (a *api) configureServer(addr string) {
 			auth.HandleFunc("/users", a.handleUserCreate()).Methods("POST")
 			auth.HandleFunc("/sessions", a.handleSessionCreate()).Methods("POST")
 		}
+
+		private := v1.NewRoute().Subrouter()
+		{
+			private.Use(a.authenticate)
+			private.HandleFunc("/whoami", a.handleWhoAmI()).Methods("GET")
+		}
 	}
 
 	a.srv = &http.Server{

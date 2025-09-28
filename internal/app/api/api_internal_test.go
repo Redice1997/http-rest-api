@@ -11,6 +11,7 @@ import (
 	"github.com/Redice1997/http-rest-api/internal/app/model"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/memorystorage"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
+	"github.com/gorilla/securecookie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,6 +104,53 @@ func TestAPI_HandleSessionCreate(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.expected, rec.Code)
+		})
+	}
+}
+
+func TestAPI_Authenticate(t *testing.T) {
+	db := memorystorage.New()
+	cfg := NewConfig()
+	s := New(cfg, db)
+	sc := securecookie.New([]byte(cfg.SessionKey), nil)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	u := model.TestUser(t)
+
+	db.User().Create(context.Background(), u)
+
+	testCases := []struct {
+		name     string
+		cookie   any
+		expected int
+	}{
+		{
+			name: "authenticated",
+			cookie: map[any]any{
+				"user_id": u.ID,
+			},
+			expected: http.StatusOK,
+		},
+		{
+			name:     "not authenticated",
+			cookie:   map[any]any{},
+			expected: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			cookieStr, _ := sc.Encode(SessionName, tc.cookie)
+			req.AddCookie(&http.Cookie{
+				Name:  SessionName,
+				Value: cookieStr,
+			})
+			s.authenticate(handler).ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expected, rec.Code)
 		})
