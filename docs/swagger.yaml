@@ -39,20 +39,41 @@ info:
     email: support@example.com
     name: API Support
     url: http://example.com/support
-  description: API для аутентификации и управления пользователями
+  description: API with authentication and user management
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
   title: Auth API
   version: "1.0"
 paths:
-  /auth/sessions:
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Returns information about the current authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Information about the current authenticated user
+      tags:
+      - auth
+  /users/signin:
     post:
       consumes:
       - application/json
-      description: Создает сессию пользователя
+      description: Creates a session for the user
       parameters:
-      - description: Данные для входа
+      - description: Pass data
         in: body
         name: input
         required: true
@@ -75,16 +96,16 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-      summary: Вход в систему
+      summary: Enter the system
       tags:
       - auth
-  /auth/users:
+  /users/signup:
     post:
       consumes:
       - application/json
-      description: Создает нового пользователя в системе
+      description: Creates a new user in the system
       parameters:
-      - description: Данные пользователя
+      - description: User data
         in: body
         name: input
         required: true
@@ -105,28 +126,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-      summary: Создание пользователя
-      tags:
-      - auth
-  /auth/whoami:
-    get:
-      consumes:
-      - application/json
-      description: Возвращает информацию о текущем аутентифицированном пользователе
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.UserResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Информация о пользователе
+      summary: Create a new user
       tags:
       - auth
 securityDefinitions:

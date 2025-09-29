@@ -2,48 +2,32 @@ package api
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/Redice1997/http-rest-api/internal/app/storage"
+	"github.com/Redice1997/http-rest-api/internal/app/model"
+	"github.com/Redice1997/http-rest-api/internal/app/service/user"
 	"github.com/google/uuid"
 )
 
 func (a *api) mwAuth(next http.Handler) http.Handler {
+	var service = user.New(a.db, a.ss, a.lg)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := a.sess.Get(r, SessionName)
-		if err != nil {
-			a.error(w, r, http.StatusUnauthorized, ErrUnauthorized)
-			return
+		if ctx, err := service.Authenticate(r); err != nil {
+			a.handleAllErrors(w, r, err)
+		} else {
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
-		id, ok := session.Values["user_id"].(int64)
-		if !ok {
-			a.error(w, r, http.StatusUnauthorized, ErrUnauthorized)
-			return
-		}
-
-		ctx := r.Context()
-
-		u, err := a.db.User().GetByID(ctx, id)
-		if errors.Is(err, storage.ErrRecordNotFound) {
-			a.error(w, r, http.StatusUnauthorized, ErrUnauthorized)
-			return
-		} else if err != nil {
-			a.error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, CtxUserKey, u)))
 	})
 }
 
 func (a *api) mwSetRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := uuid.New().String()
-		w.Header().Set("X-Request-ID", reqID)
-		ctx := context.WithValue(r.Context(), CtxRequestIDKey, reqID)
+		w.Header().Set(model.HeaderRequestID, reqID)
+		ctx := context.WithValue(r.Context(), model.CtxRequestIDKey, reqID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -58,7 +42,7 @@ func (a *api) mwLogRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		a.lg.Info("HTTP request",
-			slog.String("request_id", r.Context().Value(CtxRequestIDKey).(string)),
+			slog.String("request_id", r.Context().Value(model.CtxRequestIDKey).(string)),
 			slog.String("remote_addr", r.RemoteAddr),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),

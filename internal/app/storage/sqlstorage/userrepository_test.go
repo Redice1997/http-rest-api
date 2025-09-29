@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
-	"github.com/Redice1997/http-rest-api/internal/app/storage"
 	"github.com/Redice1997/http-rest-api/internal/app/storage/sqlstorage"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +32,7 @@ func TestUserRepository_GetByEmail(t *testing.T) {
 	_, err := s.User().GetByEmail(context.Background(), email)
 
 	// assert
-	assert.ErrorIs(t, err, storage.ErrRecordNotFound)
+	assert.ErrorIs(t, err, model.ErrRecordNotFound)
 
 	// arrange
 	u := model.TestUser(t)
@@ -58,7 +57,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 	_, err := s.User().GetByID(context.Background(), u.ID)
 
 	// assert
-	assert.ErrorIs(t, err, storage.ErrRecordNotFound)
+	assert.ErrorIs(t, err, model.ErrRecordNotFound)
 
 	// arrange
 	s.User().Create(context.Background(), u)

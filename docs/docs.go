@@ -23,9 +23,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/sessions": {
-            "post": {
-                "description": "Создает сессию пользователя",
+        "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns information about the current authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -35,10 +40,39 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Вход в систему",
+                "summary": "Information about the current authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/signin": {
+            "post": {
+                "description": "Creates a session for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Enter the system",
                 "parameters": [
                     {
-                        "description": "Данные для входа",
+                        "description": "Pass data",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -72,9 +106,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/users": {
+        "/users/signup": {
             "post": {
-                "description": "Создает нового пользователя в системе",
+                "description": "Creates a new user in the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -84,10 +118,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Создание пользователя",
+                "summary": "Create a new user",
                 "parameters": [
                     {
-                        "description": "Данные пользователя",
+                        "description": "User data",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -111,40 +145,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/whoami": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает информацию о текущем аутентифицированном пользователе",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Информация о пользователе",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.UserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -219,7 +219,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Auth API",
-	Description:      "API для аутентификации и управления пользователями",
+	Description:      "API with authentication and user management",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

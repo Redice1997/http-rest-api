@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
-	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
 type UserRepository struct {
@@ -18,15 +17,6 @@ func NewUserRepository(s *Storage) *UserRepository {
 }
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
-
-	if err := u.Validate(); err != nil {
-		return err
-	}
-
-	if err := u.BeforeCreate(); err != nil {
-		return err
-	}
-
 	return r.s.db.QueryRowContext(
 		ctx,
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
@@ -47,11 +37,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 		&u.ID,
 		&u.Email,
 		&u.EncryptedPassword,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, storage.ErrRecordNotFound
-		}
-
+	); errors.Is(err, sql.ErrNoRows) {
+		return nil, model.ErrRecordNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -70,11 +58,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 		&u.ID,
 		&u.Email,
 		&u.EncryptedPassword,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, storage.ErrRecordNotFound
-		}
-
+	); errors.Is(err, sql.ErrNoRows) {
+		return nil, model.ErrRecordNotFound
+	} else if err != nil {
 		return nil, err
 	}
 

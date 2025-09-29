@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Redice1997/http-rest-api/internal/app/service/user"
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -23,11 +24,11 @@ import (
 )
 
 type api struct {
-	cfg  *Config
-	sess sessions.Store
-	db   storage.Storage
-	srv  *http.Server
-	lg   *slog.Logger
+	cfg *Config
+	ss  sessions.Store
+	db  storage.Storage
+	srv *http.Server
+	lg  *slog.Logger
 }
 
 func New(cfg *Config, db storage.Storage) *api {
@@ -77,7 +78,7 @@ func (a *api) Start(ctx context.Context) error {
 }
 
 func (a *api) configureSessionStore() {
-	a.sess = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
+	a.ss = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
 }
 
 func (a *api) configureLogger() {
@@ -109,7 +110,7 @@ func (a *api) configureServer() {
 	h.Use(a.mwLogRequest)
 	h.Use(handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedMethods([]string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cookie"}),
 	))
 
@@ -134,15 +135,15 @@ func (a *api) configureServer() {
 	// API V1
 	v1 := h.PathPrefix("/api/v1").Subrouter()
 	{
-		auth := v1.PathPrefix("/auth").Subrouter()
+		users := v1.PathPrefix("/users").Subrouter()
 		{
-			auth.HandleFunc("/users", a.handleUserCreate()).Methods(http.MethodPost)
-			auth.HandleFunc("/sessions", a.handleSessionCreate()).Methods(http.MethodPost)
+			users.HandleFunc("/signup", a.handleSignUp()).Methods(http.MethodPost)
+			users.HandleFunc("/signin", a.handleSignIn()).Methods(http.MethodPost)
 
-			private := auth.NewRoute().Subrouter()
+			private := users.NewRoute().Subrouter()
 			{
 				private.Use(a.mwAuth)
-				private.HandleFunc("/whoami", a.handleWhoAmI()).Methods(http.MethodGet)
+				private.HandleFunc("/me", a.handleMe()).Methods(http.MethodGet)
 			}
 		}
 	}
@@ -172,4 +173,19 @@ func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err
 	a.respond(w, r, status, &ErrorResponse{
 		Error: err.Error(),
 	})
+}
+
+func (a *api) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
+	switch err {
+	case user.ErrUserValidation:
+		a.errorNoLog(w, r, http.StatusBadRequest, err)
+	case user.ErrUserUnauthorized:
+		a.errorNoLog(w, r, http.StatusUnauthorized, err)
+	case user.ErrUserExists:
+		a.errorNoLog(w, r, http.StatusConflict, err)
+	case user.ErrInvalidEmailOrPassword:
+		a.errorNoLog(w, r, http.StatusUnauthorized, err)
+	default:
+		a.error(w, r, http.StatusInternalServerError, err)
+	}
 }

@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API для аутентификации и управления пользователями",
+        "description": "API with authentication and user management",
         "title": "Auth API",
         "contact": {
             "name": "API Support",
@@ -17,9 +17,14 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
-        "/auth/sessions": {
-            "post": {
-                "description": "Создает сессию пользователя",
+        "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns information about the current authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -29,10 +34,39 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Вход в систему",
+                "summary": "Information about the current authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/signin": {
+            "post": {
+                "description": "Creates a session for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Enter the system",
                 "parameters": [
                     {
-                        "description": "Данные для входа",
+                        "description": "Pass data",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -66,9 +100,9 @@
                 }
             }
         },
-        "/auth/users": {
+        "/users/signup": {
             "post": {
-                "description": "Создает нового пользователя в системе",
+                "description": "Creates a new user in the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -78,10 +112,10 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Создание пользователя",
+                "summary": "Create a new user",
                 "parameters": [
                     {
-                        "description": "Данные пользователя",
+                        "description": "User data",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -105,40 +139,6 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/whoami": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает информацию о текущем аутентифицированном пользователе",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Информация о пользователе",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.UserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }

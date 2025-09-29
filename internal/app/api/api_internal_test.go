@@ -145,9 +145,9 @@ func TestAPI_Authenticate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			cookieStr, _ := sc.Encode(SessionName, tc.cookie)
+			cookieStr, _ := sc.Encode(model.SessionName, tc.cookie)
 			req.AddCookie(&http.Cookie{
-				Name:  SessionName,
+				Name:  model.SessionName,
 				Value: cookieStr,
 			})
 			s.mwAuth(handler).ServeHTTP(rec, req)
