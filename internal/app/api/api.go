@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -50,6 +51,7 @@ func (a *api) Start(ctx context.Context) error {
 
 	eg.Go(func() error {
 		a.lg.Info("Starting API server", "address", a.srv.Addr)
+		a.lg.Debug("Swagger URL", "address", fmt.Sprintf("http://localhost%s/swagger/", a.srv.Addr))
 
 		err := a.srv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
