@@ -11,7 +11,7 @@ import (
 
 var TestSessionKey = []byte("session_key")
 
-func TestNew(t *testing.T) *UserService {
+func TestNew(t *testing.T) *Service {
 	t.Helper()
 
 	var (

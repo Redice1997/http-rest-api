@@ -8,7 +8,7 @@ type Config struct {
 	SessionKey         string `yaml:"session_key"`
 }
 
-// DefaultConfig provides default configuration values for the API server.
+// NewConfig provides default configuration values for the API server.
 func NewConfig() *Config {
 	return &Config{
 		ServerAddress:      ":8080",

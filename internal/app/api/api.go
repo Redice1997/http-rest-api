@@ -24,6 +24,10 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+type API interface {
+	Start(ctx context.Context) error
+}
+
 type api struct {
 	cfg *Config
 	ss  sessions.Store
@@ -32,7 +36,7 @@ type api struct {
 	lg  *slog.Logger
 }
 
-func New(cfg *Config, db storage.Storage) *api {
+func New(cfg *Config, db storage.Storage) API {
 	a := new(api)
 
 	a.cfg = cfg
@@ -178,14 +182,14 @@ func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err
 }
 
 func (a *api) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
-	switch err {
-	case user.ErrUserValidation:
+	switch {
+	case errors.Is(err, user.ErrUserValidation):
 		a.errorNoLog(w, r, http.StatusBadRequest, err)
-	case user.ErrUserUnauthorized:
+	case errors.Is(err, user.ErrUserUnauthorized):
 		a.errorNoLog(w, r, http.StatusUnauthorized, err)
-	case user.ErrUserExists:
+	case errors.Is(err, user.ErrUserExists):
 		a.errorNoLog(w, r, http.StatusConflict, err)
-	case user.ErrInvalidEmailOrPassword:
+	case errors.Is(err, user.ErrInvalidEmailOrPassword):
 		a.errorNoLog(w, r, http.StatusUnauthorized, err)
 	default:
 		a.error(w, r, http.StatusInternalServerError, err)

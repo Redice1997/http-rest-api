@@ -54,7 +54,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlstorage.Storage) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("Failed to close database connection: %v", err)
+		}
+	}(db)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
