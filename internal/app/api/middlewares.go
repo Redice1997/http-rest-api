@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (a *api) mwAuth(next http.Handler) http.Handler {
+func (a *API) mwAuth(next http.Handler) http.Handler {
 	var service = user.New(a.db, a.ss, a.lg)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +23,7 @@ func (a *api) mwAuth(next http.Handler) http.Handler {
 	})
 }
 
-func (a *api) mwSetRequestID(next http.Handler) http.Handler {
+func (a *API) mwSetRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := uuid.New().String()
 		w.Header().Set(model.HeaderRequestID, reqID)
@@ -32,7 +32,7 @@ func (a *api) mwSetRequestID(next http.Handler) http.Handler {
 	})
 }
 
-func (a *api) mwLogRequest(next http.Handler) http.Handler {
+func (a *API) mwLogRequest(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

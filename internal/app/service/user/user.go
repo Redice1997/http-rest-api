@@ -15,14 +15,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
+type Service struct {
 	ss sessions.Store
 	db storage.Storage
 	lg *slog.Logger
 }
 
-func New(db storage.Storage, ss sessions.Store, lg *slog.Logger) *UserService {
-	return &UserService{
+func New(db storage.Storage, ss sessions.Store, lg *slog.Logger) *Service {
+	return &Service{
 		db: db,
 		ss: ss,
 		lg: lg,
@@ -37,12 +37,12 @@ func Me(ctx context.Context) (*model.User, error) {
 	return u, nil
 }
 
-func (s *UserService) Authenticate(r *http.Request) (context.Context, error) {
+func (s *Service) Authenticate(r *http.Request) (context.Context, error) {
 	session, err := s.ss.Get(r, model.SessionName)
 	if err != nil {
 		return nil, ErrUserUnauthorized
 	}
-	id, ok := session.Values[model.SessonUserID].(int64)
+	id, ok := session.Values[model.SessionUserID].(int64)
 	if !ok {
 		return nil, ErrUserUnauthorized
 	}
@@ -59,13 +59,24 @@ func (s *UserService) Authenticate(r *http.Request) (context.Context, error) {
 	return context.WithValue(ctx, model.CtxUserKey, u), nil
 }
 
-func (s *UserService) Save(ctx context.Context, u *model.User) error {
+func (s *Service) Save(ctx context.Context, u *model.User) error {
 
 	if err := validate(u); err != nil {
 		return err
 	}
 
-	if _, err := s.db.User().GetByEmail(ctx, u.Email); errors.Is(err, model.ErrRecordNotFound) {
+	tx, err := s.db.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func(tx storage.TxStorage) {
+		err := tx.Rollback()
+		if err != nil {
+			s.lg.Error("failed to rollback transaction", "error", err)
+		}
+	}(tx)
+
+	if _, err := tx.User().GetByEmail(ctx, u.Email); errors.Is(err, model.ErrRecordNotFound) {
 
 	} else if err != nil {
 		return err
@@ -77,14 +88,14 @@ func (s *UserService) Save(ctx context.Context, u *model.User) error {
 		return err
 	}
 
-	if err := s.db.User().Create(ctx, u); err != nil {
+	if err := tx.User().Create(ctx, u); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
 
-func (s *UserService) CreateHttpSession(w http.ResponseWriter, r *http.Request, u *model.User) error {
+func (s *Service) CreateHttpSession(w http.ResponseWriter, r *http.Request, u *model.User) error {
 
 	if found, err := s.db.User().GetByEmail(r.Context(), u.Email); errors.Is(err, model.ErrRecordNotFound) {
 		return ErrInvalidEmailOrPassword
@@ -103,7 +114,7 @@ func (s *UserService) CreateHttpSession(w http.ResponseWriter, r *http.Request, 
 		return err
 	}
 
-	session.Values[model.SessonUserID] = u.ID
+	session.Values[model.SessionUserID] = u.ID
 
 	if err := session.Save(r, w); err != nil {
 		return err

@@ -24,28 +24,30 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-type api struct {
-	cfg *Config
-	ss  sessions.Store
-	db  storage.Storage
-	srv *http.Server
-	lg  *slog.Logger
+type API struct {
+	cfg  *Config
+	user *user.Service
+	ss   sessions.Store
+	db   storage.Storage
+	srv  *http.Server
+	lg   *slog.Logger
 }
 
-func New(cfg *Config, db storage.Storage) *api {
-	a := new(api)
+func New(cfg *Config, db storage.Storage) *API {
+	a := new(API)
 
 	a.cfg = cfg
 	a.db = db
-	a.configureSessionStore()
-	a.configureServer()
 	a.configureLogger()
+	a.configureSessionStore()
+	a.configureServices()
+	a.configureServer()
 
 	return a
 }
 
 // Start initializes and starts the API server
-func (a *api) Start(ctx context.Context) error {
+func (a *API) Start(ctx context.Context) error {
 
 	eg, egCtx := errgroup.WithContext(ctx)
 
@@ -79,11 +81,15 @@ func (a *api) Start(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (a *api) configureSessionStore() {
+func (a *API) configureSessionStore() {
 	a.ss = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
 }
 
-func (a *api) configureLogger() {
+func (a *API) configureServices() {
+	a.user = user.New(a.db, a.ss, a.lg)
+}
+
+func (a *API) configureLogger() {
 
 	var level slog.Level
 	switch a.cfg.LogLevel {
@@ -104,7 +110,7 @@ func (a *api) configureLogger() {
 	a.lg = logger
 }
 
-func (a *api) configureServer() {
+func (a *API) configureServer() {
 	h := mux.NewRouter()
 
 	// MIDDLEWARES
@@ -135,17 +141,17 @@ func (a *api) configureServer() {
 	}).Methods(http.MethodOptions)
 
 	// API V1
-	v1 := h.PathPrefix("/api/v1").Subrouter()
+	v1 := h.PathPrefix("/API/v1").Subrouter()
 	{
 		users := v1.PathPrefix("/users").Subrouter()
 		{
-			users.HandleFunc("/signup", a.handleSignUp()).Methods(http.MethodPost)
-			users.HandleFunc("/signin", a.handleSignIn()).Methods(http.MethodPost)
+			users.HandleFunc("/signup", a.HandleSignUp()).Methods(http.MethodPost)
+			users.HandleFunc("/signin", a.HandleSignIn()).Methods(http.MethodPost)
 
 			private := users.NewRoute().Subrouter()
 			{
 				private.Use(a.mwAuth)
-				private.HandleFunc("/me", a.handleMe()).Methods(http.MethodGet)
+				private.HandleFunc("/me", a.HandleMe()).Methods(http.MethodGet)
 			}
 		}
 	}
@@ -156,7 +162,7 @@ func (a *api) configureServer() {
 	}
 }
 
-func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data any) {
+func (a *API) respond(w http.ResponseWriter, r *http.Request, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
@@ -166,26 +172,26 @@ func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data a
 	}
 }
 
-func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err error) {
+func (a *API) error(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.lg.Error("Error occurred", "error", err)
 	a.errorNoLog(w, r, status, err)
 }
 
-func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
+func (a *API) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.respond(w, r, status, &ErrorResponse{
 		Error: err.Error(),
 	})
 }
 
-func (a *api) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
-	switch err {
-	case user.ErrUserValidation:
+func (a *API) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, user.ErrUserValidation):
 		a.errorNoLog(w, r, http.StatusBadRequest, err)
-	case user.ErrUserUnauthorized:
+	case errors.Is(err, user.ErrUserUnauthorized):
 		a.errorNoLog(w, r, http.StatusUnauthorized, err)
-	case user.ErrUserExists:
+	case errors.Is(err, user.ErrUserExists):
 		a.errorNoLog(w, r, http.StatusConflict, err)
-	case user.ErrInvalidEmailOrPassword:
+	case errors.Is(err, user.ErrInvalidEmailOrPassword):
 		a.errorNoLog(w, r, http.StatusUnauthorized, err)
 	default:
 		a.error(w, r, http.StatusInternalServerError, err)

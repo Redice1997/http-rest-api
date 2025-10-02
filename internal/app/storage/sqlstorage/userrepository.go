@@ -9,15 +9,15 @@ import (
 )
 
 type UserRepository struct {
-	s *Storage
+	db SqlDB
 }
 
-func NewUserRepository(s *Storage) *UserRepository {
-	return &UserRepository{s: s}
+func newUserRepository(db SqlDB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
-	return r.s.db.QueryRowContext(
+	return r.db.QueryRowContext(
 		ctx,
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
 		u.Email,
@@ -29,7 +29,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 
 	u := new(model.User)
 
-	if err := r.s.db.QueryRowContext(
+	if err := r.db.QueryRowContext(
 		ctx,
 		"SELECT id, email, encrypted_password FROM users WHERE email = $1",
 		email,
@@ -50,7 +50,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 
 	u := new(model.User)
 
-	if err := r.s.db.QueryRowContext(
+	if err := r.db.QueryRowContext(
 		ctx,
 		"SELECT id, email, encrypted_password FROM users WHERE id = $1",
 		id,
@@ -69,7 +69,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 
 func (r *UserRepository) Update(ctx context.Context, u *model.User) error {
 
-	_, err := r.s.db.ExecContext(
+	_, err := r.db.ExecContext(
 		ctx,
 		"UPDATE users SET email = $1, encrypted_password = $2 WHERE id = $3",
 		u.Email,
@@ -82,7 +82,7 @@ func (r *UserRepository) Update(ctx context.Context, u *model.User) error {
 
 func (r *UserRepository) Delete(ctx context.Context, id int64) error {
 
-	_, err := r.s.db.ExecContext(
+	_, err := r.db.ExecContext(
 		ctx,
 		"DELETE FROM users WHERE id = $1",
 		id,

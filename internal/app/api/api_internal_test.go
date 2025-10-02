@@ -43,7 +43,7 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 				"email":    "john.doe",
 				"password": "password123",
 			},
-			expected: http.StatusUnprocessableEntity,
+			expected: http.StatusBadRequest,
 		},
 	}
 
@@ -51,8 +51,8 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
-			json.NewEncoder(b).Encode(tc.request)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/users", b)
+			_ = json.NewEncoder(b).Encode(tc.request)
+			req := httptest.NewRequest(http.MethodPost, "/API/v1/users/signup", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
 
@@ -62,11 +62,12 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 }
 
 func TestAPI_HandleSessionCreate(t *testing.T) {
-	db := memorystorage.New()
-	s := New(NewConfig(), db)
+	cfg := NewConfig()
+	db, cleanup := sqlstorage.NewTestStorage(t, cfg.DbConnectionString)
+	defer cleanup("users")
+	api := New(NewConfig(), db)
 	u := model.TestUser(t)
-
-	db.User().Create(context.Background(), u)
+	_ = api.user.Save(context.Background(), u)
 
 	testCases := []struct {
 		name     string
@@ -100,10 +101,10 @@ func TestAPI_HandleSessionCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
-			json.NewEncoder(b).Encode(tc.JSON)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", b)
+			_ = json.NewEncoder(b).Encode(tc.JSON)
+			req := httptest.NewRequest(http.MethodPost, "/API/v1/users/signin", b)
 
-			s.srv.Handler.ServeHTTP(rec, req)
+			api.srv.Handler.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expected, rec.Code)
 		})
@@ -120,7 +121,7 @@ func TestAPI_Authenticate(t *testing.T) {
 	})
 	u := model.TestUser(t)
 
-	db.User().Create(context.Background(), u)
+	_ = db.User().Create(context.Background(), u)
 
 	testCases := []struct {
 		name     string
