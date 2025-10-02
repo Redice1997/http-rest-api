@@ -25,11 +25,12 @@ import (
 )
 
 type API struct {
-	cfg *Config
-	ss  sessions.Store
-	db  storage.Storage
-	srv *http.Server
-	lg  *slog.Logger
+	cfg  *Config
+	user *user.Service
+	ss   sessions.Store
+	db   storage.Storage
+	srv  *http.Server
+	lg   *slog.Logger
 }
 
 func New(cfg *Config, db storage.Storage) *API {
@@ -37,9 +38,10 @@ func New(cfg *Config, db storage.Storage) *API {
 
 	a.cfg = cfg
 	a.db = db
-	a.configureSessionStore()
-	a.configureServer()
 	a.configureLogger()
+	a.configureSessionStore()
+	a.configureServices()
+	a.configureServer()
 
 	return a
 }
@@ -81,6 +83,10 @@ func (a *API) Start(ctx context.Context) error {
 
 func (a *API) configureSessionStore() {
 	a.ss = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
+}
+
+func (a *API) configureServices() {
+	a.user = user.New(a.db, a.ss, a.lg)
 }
 
 func (a *API) configureLogger() {

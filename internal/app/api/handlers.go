@@ -20,11 +20,7 @@ import (
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signup [post]
 func (a *API) HandleSignUp() http.HandlerFunc {
-
-	var service = user.New(a.db, a.ss, a.lg)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		req := new(UserCreateRequest)
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			a.error(w, r, http.StatusBadRequest, err)
@@ -35,7 +31,7 @@ func (a *API) HandleSignUp() http.HandlerFunc {
 			Email:    req.Email,
 			Password: req.Password,
 		}
-		if err := service.Save(r.Context(), u); err != nil {
+		if err := a.user.Save(r.Context(), u); err != nil {
 			a.handleAllErrors(w, r, err)
 		} else {
 			a.respond(w, r, http.StatusCreated, &UserResponse{
@@ -59,9 +55,6 @@ func (a *API) HandleSignUp() http.HandlerFunc {
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signin [post]
 func (a *API) HandleSignIn() http.HandlerFunc {
-
-	var service = user.New(a.db, a.ss, a.lg)
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := new(SessionCreateRequest)
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -69,7 +62,7 @@ func (a *API) HandleSignIn() http.HandlerFunc {
 			return
 		}
 
-		if err := service.CreateHttpSession(w, r, &model.User{
+		if err := a.user.CreateHttpSession(w, r, &model.User{
 			Email:    req.Email,
 			Password: req.Password,
 		}); err != nil {

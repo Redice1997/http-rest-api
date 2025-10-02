@@ -8,15 +8,15 @@ import (
 	"github.com/Redice1997/http-rest-api/internal/app/model"
 )
 
-type userRepository struct {
-	db sqlDB
+type UserRepository struct {
+	db SqlDB
 }
 
-func newUserRepository(db sqlDB) *userRepository {
-	return &userRepository{db: db}
+func newUserRepository(db SqlDB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
-func (r *userRepository) Create(ctx context.Context, u *model.User) error {
+func (r *UserRepository) Create(ctx context.Context, u *model.User) error {
 	return r.db.QueryRowContext(
 		ctx,
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
@@ -25,7 +25,7 @@ func (r *userRepository) Create(ctx context.Context, u *model.User) error {
 	).Scan(&u.ID)
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 
 	u := new(model.User)
 
@@ -46,7 +46,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	return u, nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
 
 	u := new(model.User)
 
@@ -67,7 +67,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 	return u, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, u *model.User) error {
+func (r *UserRepository) Update(ctx context.Context, u *model.User) error {
 
 	_, err := r.db.ExecContext(
 		ctx,
@@ -80,7 +80,7 @@ func (r *userRepository) Update(ctx context.Context, u *model.User) error {
 	return err
 }
 
-func (r *userRepository) Delete(ctx context.Context, id int64) error {
+func (r *UserRepository) Delete(ctx context.Context, id int64) error {
 
 	_, err := r.db.ExecContext(
 		ctx,

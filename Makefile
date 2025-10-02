@@ -20,6 +20,11 @@ migrate:
 	@echo "🗄️ Running database migrations..."
 	@migrate -path ./migrations -database "postgres://api:password@localhost:5432/api_db?sslmode=disable" up
 
+db_test:
+	@echo "🗄️ Creating test database..."
+	@PGPASSWORD=password createdb -h localhost -p 5432 -U api test_api_db
+	@echo "✅ Done"
+
 migrate_test:
 	@echo "🗄️ Running test database migrations..."
 	@migrate -path ./migrations -database "postgres://api:password@localhost:5432/test_api_db?sslmode=disable" up
@@ -40,4 +45,4 @@ docs:
 	@echo "Generating API documentation..."
 	@swag init -g ./cmd/api/main.go --output docs/
 
-.PHONY: all setup init lint build migrate test run compose lint docs
+.PHONY: all setup init lint build migrate test run compose lint docs db_test

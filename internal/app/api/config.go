@@ -12,7 +12,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		ServerAddress:      ":8080",
-		DbConnectionString: "host=localhost port=5432 user=API password=password dbname=test_api_db sslmode=disable",
+		DbConnectionString: "host=localhost port=5432 user=api password=password dbname=test_api_db sslmode=disable",
 		LogLevel:           "debug",
 		SessionKey:         "secret_key",
 	}

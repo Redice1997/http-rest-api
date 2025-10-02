@@ -11,7 +11,7 @@ import (
 
 type Storage struct {
 	db             *sql.DB
-	userRepository *userRepository
+	userRepository *UserRepository
 }
 
 func New(connectionString string) (*Storage, error) {
@@ -42,7 +42,7 @@ func (s *Storage) BeginTx(ctx context.Context) (storage.TxStorage, error) {
 	}
 	return &TxStorage{
 		userRepository: newUserRepository(tx),
-		db:             tx,
+		tx:             tx,
 	}, nil
 }
 
@@ -51,8 +51,8 @@ func (s *Storage) Close() error {
 }
 
 type TxStorage struct {
-	db             *sql.Tx
-	userRepository *userRepository
+	tx             *sql.Tx
+	userRepository *UserRepository
 }
 
 func (s *TxStorage) User() storage.UserRepository {
@@ -60,14 +60,14 @@ func (s *TxStorage) User() storage.UserRepository {
 }
 
 func (s *TxStorage) Rollback() error {
-	return s.db.Rollback()
+	return s.tx.Rollback()
 }
 
 func (s *TxStorage) Commit() error {
-	return s.db.Commit()
+	return s.tx.Commit()
 }
 
-type sqlDB interface {
+type SqlDB interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row

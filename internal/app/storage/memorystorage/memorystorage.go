@@ -2,12 +2,9 @@ package memorystorage
 
 import (
 	"context"
-	"sync"
 
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
-
-var mut sync.Mutex
 
 type Storage struct {
 	userRepository *UserRepository
@@ -25,10 +22,8 @@ func (s *Storage) User() storage.UserRepository {
 }
 
 func (s *Storage) BeginTx(_ context.Context) (storage.TxStorage, error) {
-	mut.Lock()
-
 	return &TxStorage{
-		userRepository: NewUserRepository(s),
+		userRepository: s.userRepository,
 	}, nil
 }
 
@@ -41,11 +36,9 @@ func (s *TxStorage) User() storage.UserRepository {
 }
 
 func (s *TxStorage) Commit() error {
-	mut.Unlock()
 	return nil
 }
 
 func (s *TxStorage) Rollback() error {
-	mut.Unlock()
 	return nil
 }
