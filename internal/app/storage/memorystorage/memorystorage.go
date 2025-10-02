@@ -7,6 +7,8 @@ import (
 	"github.com/Redice1997/http-rest-api/internal/app/storage"
 )
 
+var mut sync.Mutex
+
 type Storage struct {
 	userRepository *UserRepository
 }
@@ -22,18 +24,15 @@ func (s *Storage) User() storage.UserRepository {
 	return s.userRepository
 }
 
-func (s *Storage) BeginTx(ctx context.Context) (storage.TxStorage, error) {
-	mut := new(sync.Mutex)
+func (s *Storage) BeginTx(_ context.Context) (storage.TxStorage, error) {
 	mut.Lock()
 
 	return &TxStorage{
 		userRepository: NewUserRepository(s),
-		mut:            mut,
 	}, nil
 }
 
 type TxStorage struct {
-	mut            *sync.Mutex
 	userRepository *UserRepository
 }
 
@@ -42,11 +41,11 @@ func (s *TxStorage) User() storage.UserRepository {
 }
 
 func (s *TxStorage) Commit() error {
-	s.mut.Unlock()
+	mut.Unlock()
 	return nil
 }
 
 func (s *TxStorage) Rollback() error {
-	s.mut.Unlock()
+	mut.Unlock()
 	return nil
 }
