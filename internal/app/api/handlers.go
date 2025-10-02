@@ -19,7 +19,7 @@ import (
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signup [post]
-func (a *api) HandleSignUp() http.HandlerFunc {
+func (a *API) HandleSignUp() http.HandlerFunc {
 
 	var service = user.New(a.db, a.ss, a.lg)
 
@@ -58,7 +58,7 @@ func (a *api) HandleSignUp() http.HandlerFunc {
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signin [post]
-func (a *api) HandleSignIn() http.HandlerFunc {
+func (a *API) HandleSignIn() http.HandlerFunc {
 
 	var service = user.New(a.db, a.ss, a.lg)
 
@@ -90,7 +90,7 @@ func (a *api) HandleSignIn() http.HandlerFunc {
 // @Success 200 {object} UserResponse
 // @Failure 401 {object} ErrorResponse
 // @Router /users/me [get]
-func (a *api) HandleMe() http.HandlerFunc {
+func (a *API) HandleMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if u, err := user.Me(r.Context()); err != nil {
 			a.handleAllErrors(w, r, err)

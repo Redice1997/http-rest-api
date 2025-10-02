@@ -51,8 +51,8 @@ func TestAPI_HandleUserCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
-			json.NewEncoder(b).Encode(tc.request)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/users", b)
+			_ = json.NewEncoder(b).Encode(tc.request)
+			req := httptest.NewRequest(http.MethodPost, "/API/v1/auth/users", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
 
@@ -66,7 +66,7 @@ func TestAPI_HandleSessionCreate(t *testing.T) {
 	s := New(NewConfig(), db)
 	u := model.TestUser(t)
 
-	db.User().Create(context.Background(), u)
+	_ = db.User().Create(context.Background(), u)
 
 	testCases := []struct {
 		name     string
@@ -100,8 +100,8 @@ func TestAPI_HandleSessionCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := bytes.NewBuffer([]byte{})
-			json.NewEncoder(b).Encode(tc.JSON)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sessions", b)
+			_ = json.NewEncoder(b).Encode(tc.JSON)
+			req := httptest.NewRequest(http.MethodPost, "/API/v1/auth/sessions", b)
 
 			s.srv.Handler.ServeHTTP(rec, req)
 
@@ -120,7 +120,7 @@ func TestAPI_Authenticate(t *testing.T) {
 	})
 	u := model.TestUser(t)
 
-	db.User().Create(context.Background(), u)
+	_ = db.User().Create(context.Background(), u)
 
 	testCases := []struct {
 		name     string

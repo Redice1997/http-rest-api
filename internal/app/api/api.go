@@ -24,11 +24,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-type API interface {
-	Start(ctx context.Context) error
-}
-
-type api struct {
+type API struct {
 	cfg *Config
 	ss  sessions.Store
 	db  storage.Storage
@@ -36,8 +32,8 @@ type api struct {
 	lg  *slog.Logger
 }
 
-func New(cfg *Config, db storage.Storage) API {
-	a := new(api)
+func New(cfg *Config, db storage.Storage) *API {
+	a := new(API)
 
 	a.cfg = cfg
 	a.db = db
@@ -49,7 +45,7 @@ func New(cfg *Config, db storage.Storage) API {
 }
 
 // Start initializes and starts the API server
-func (a *api) Start(ctx context.Context) error {
+func (a *API) Start(ctx context.Context) error {
 
 	eg, egCtx := errgroup.WithContext(ctx)
 
@@ -83,11 +79,11 @@ func (a *api) Start(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (a *api) configureSessionStore() {
+func (a *API) configureSessionStore() {
 	a.ss = sessions.NewCookieStore([]byte(a.cfg.SessionKey))
 }
 
-func (a *api) configureLogger() {
+func (a *API) configureLogger() {
 
 	var level slog.Level
 	switch a.cfg.LogLevel {
@@ -108,7 +104,7 @@ func (a *api) configureLogger() {
 	a.lg = logger
 }
 
-func (a *api) configureServer() {
+func (a *API) configureServer() {
 	h := mux.NewRouter()
 
 	// MIDDLEWARES
@@ -139,7 +135,7 @@ func (a *api) configureServer() {
 	}).Methods(http.MethodOptions)
 
 	// API V1
-	v1 := h.PathPrefix("/api/v1").Subrouter()
+	v1 := h.PathPrefix("/API/v1").Subrouter()
 	{
 		users := v1.PathPrefix("/users").Subrouter()
 		{
@@ -160,7 +156,7 @@ func (a *api) configureServer() {
 	}
 }
 
-func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data any) {
+func (a *API) respond(w http.ResponseWriter, r *http.Request, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
@@ -170,18 +166,18 @@ func (a *api) respond(w http.ResponseWriter, r *http.Request, status int, data a
 	}
 }
 
-func (a *api) error(w http.ResponseWriter, r *http.Request, status int, err error) {
+func (a *API) error(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.lg.Error("Error occurred", "error", err)
 	a.errorNoLog(w, r, status, err)
 }
 
-func (a *api) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
+func (a *API) errorNoLog(w http.ResponseWriter, r *http.Request, status int, err error) {
 	a.respond(w, r, status, &ErrorResponse{
 		Error: err.Error(),
 	})
 }
 
-func (a *api) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
+func (a *API) handleAllErrors(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, user.ErrUserValidation):
 		a.errorNoLog(w, r, http.StatusBadRequest, err)
