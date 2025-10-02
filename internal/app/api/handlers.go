@@ -8,7 +8,7 @@ import (
 	"github.com/Redice1997/http-rest-api/internal/app/service/user"
 )
 
-// handleSignUp creates a new user
+// HandleSignUp creates a new user
 // @Summary Create a new user
 // @Description Creates a new user in the system
 // @Tags auth
@@ -19,7 +19,7 @@ import (
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signup [post]
-func (a *api) handleSignUp() http.HandlerFunc {
+func (a *api) HandleSignUp() http.HandlerFunc {
 
 	var service = user.New(a.db, a.ss, a.lg)
 
@@ -46,7 +46,7 @@ func (a *api) handleSignUp() http.HandlerFunc {
 	}
 }
 
-// handleSignIn creates a session for the user
+// HandleSignIn creates a session for the user
 // @Summary Enter the system
 // @Description Creates a session for the user
 // @Tags auth
@@ -58,7 +58,7 @@ func (a *api) handleSignUp() http.HandlerFunc {
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /users/signin [post]
-func (a *api) handleSignIn() http.HandlerFunc {
+func (a *api) HandleSignIn() http.HandlerFunc {
 
 	var service = user.New(a.db, a.ss, a.lg)
 
@@ -80,7 +80,7 @@ func (a *api) handleSignIn() http.HandlerFunc {
 	}
 }
 
-// handleMe returns information about the current authenticated user
+// HandleMe returns information about the current authenticated user
 // @Summary Information about the current authenticated user
 // @Description Returns information about the current authenticated user
 // @Tags auth
@@ -90,7 +90,7 @@ func (a *api) handleSignIn() http.HandlerFunc {
 // @Success 200 {object} UserResponse
 // @Failure 401 {object} ErrorResponse
 // @Router /users/me [get]
-func (a *api) handleMe() http.HandlerFunc {
+func (a *api) HandleMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if u, err := user.Me(r.Context()); err != nil {
 			a.handleAllErrors(w, r, err)

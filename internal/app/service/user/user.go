@@ -65,7 +65,18 @@ func (s *Service) Save(ctx context.Context, u *model.User) error {
 		return err
 	}
 
-	if _, err := s.db.User().GetByEmail(ctx, u.Email); errors.Is(err, model.ErrRecordNotFound) {
+	tx, err := s.db.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func(tx storage.TxStorage) {
+		err := tx.Rollback()
+		if err != nil {
+			s.lg.Error("failed to rollback transaction", "error", err)
+		}
+	}(tx)
+
+	if _, err := tx.User().GetByEmail(ctx, u.Email); errors.Is(err, model.ErrRecordNotFound) {
 
 	} else if err != nil {
 		return err
@@ -77,11 +88,11 @@ func (s *Service) Save(ctx context.Context, u *model.User) error {
 		return err
 	}
 
-	if err := s.db.User().Create(ctx, u); err != nil {
+	if err := tx.User().Create(ctx, u); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (s *Service) CreateHttpSession(w http.ResponseWriter, r *http.Request, u *model.User) error {

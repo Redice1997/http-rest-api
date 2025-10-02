@@ -143,13 +143,13 @@ func (a *api) configureServer() {
 	{
 		users := v1.PathPrefix("/users").Subrouter()
 		{
-			users.HandleFunc("/signup", a.handleSignUp()).Methods(http.MethodPost)
-			users.HandleFunc("/signin", a.handleSignIn()).Methods(http.MethodPost)
+			users.HandleFunc("/signup", a.HandleSignUp()).Methods(http.MethodPost)
+			users.HandleFunc("/signin", a.HandleSignIn()).Methods(http.MethodPost)
 
 			private := users.NewRoute().Subrouter()
 			{
 				private.Use(a.mwAuth)
-				private.HandleFunc("/me", a.handleMe()).Methods(http.MethodGet)
+				private.HandleFunc("/me", a.HandleMe()).Methods(http.MethodGet)
 			}
 		}
 	}
