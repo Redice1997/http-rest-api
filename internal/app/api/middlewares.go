@@ -7,15 +7,12 @@ import (
 	"time"
 
 	"github.com/Redice1997/http-rest-api/internal/app/model"
-	"github.com/Redice1997/http-rest-api/internal/app/service/user"
 	"github.com/google/uuid"
 )
 
 func (a *API) mwAuth(next http.Handler) http.Handler {
-	var service = user.New(a.db, a.ss, a.lg)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if ctx, err := service.Authenticate(r); err != nil {
+		if ctx, err := a.user.Authenticate(r); err != nil {
 			a.handleAllErrors(w, r, err)
 		} else {
 			next.ServeHTTP(w, r.WithContext(ctx))

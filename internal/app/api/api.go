@@ -141,7 +141,7 @@ func (a *API) configureServer() {
 	}).Methods(http.MethodOptions)
 
 	// API V1
-	v1 := h.PathPrefix("/API/v1").Subrouter()
+	v1 := h.PathPrefix("/api/v1").Subrouter()
 	{
 		users := v1.PathPrefix("/users").Subrouter()
 		{
